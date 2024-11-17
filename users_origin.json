@@ -1,0 +1,21 @@
+{
+    "users": [
+      {
+        "name": "Alice",
+        "id": "001",
+        "questions": [
+          "What is your favorite color?",
+          "How often do you use our service?"
+        ]
+      },
+      {
+        "name": "Bob",
+        "id": "002",
+        "questions": [
+          "What features do you expect to see?",
+          "How would you rate our service?"
+        ]
+      }
+    ]
+  }
+  

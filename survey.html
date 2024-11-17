@@ -53,9 +53,7 @@
       color: #ccc;
       cursor: pointer;
     }
-    .rating input[type="radio"]:checked ~ label,
-    .rating label:hover,
-    .rating label:hover ~ label {
+    .rating label.selected {
       color: #ffcc00;
     }
     input[type="text"], textarea {
@@ -122,7 +120,7 @@
             <input type="radio" id="star5-q${index}" name="rating-q${index}" value="5">
             <label for="star5-q${index}" data-value="5">&#9733;</label>
           </div>
-          <label for="comment-q${index}">评价或者建议（至少20字）</label>
+          <label for="comment-q${index}">评价或者建议</label>
           <textarea id="comment-q${index}" name="comment-q${index}" rows="4" minlength="20" maxlength="200" required></textarea>
           <div id="error-q${index}" class="error-message"></div>
         `;
@@ -133,11 +131,16 @@
         label.addEventListener('click', function() {
           const questionIndex = this.parentElement.getAttribute('data-question-index');
           const starValue = parseInt(this.getAttribute('data-value'));
-          for (let i = 1; i <= starValue; i++) {
-            document.getElementById(`star${i}-q${questionIndex}`).checked = true;
-          }
-          for (let i = starValue + 1; i <= 5; i++) {
-            document.getElementById(`star${i}-q${questionIndex}`).checked = false;
+          for (let i = 1; i <= 5; i++) {
+            const star = document.getElementById(`star${i}-q${questionIndex}`);
+            const starLabel = document.querySelector(`label[for="star${i}-q${questionIndex}"]`);
+            if (i <= starValue) {
+              star.checked = true;
+              starLabel.classList.add('selected');
+            } else {
+              star.checked = false;
+              starLabel.classList.remove('selected');
+            }
           }
         });
       });
@@ -181,7 +184,7 @@
           const responses = user.questions.map((_, index) => ({
             username: user.name,
             userId: user.id,
-            teacher: user.questions[index].split(' ')[2],
+            teacher: user.questions[index].match(/教师\s(.*?)\s的满意度/)[1],
             rating: document.querySelector(`input[name="rating-q${index}"]:checked`).value,
             comment: document.getElementById(`comment-q${index}`).value
           }));

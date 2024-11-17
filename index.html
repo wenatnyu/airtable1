@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="styles.css">
+  <title>Login</title>
+</head>
+<body>
+  <h1>Welcome to the Survey</h1>
+  <form id="loginForm">
+    <label for="username">Username:</label>
+    <input type="text" id="username" required>
+    <label for="userId">ID:</label>
+    <input type="text" id="userId" required>
+    <button type="submit">Login</button>
+  </form>
+  <p id="error" style="color:red;"></p>
+
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const username = document.getElementById('username').value;
+      const userId = document.getElementById('userId').value;
+
+      // Fetch user data
+      const response = await fetch('./users.json');
+      const data = await response.json();
+      const user = data.users.find(u => u.name === username && u.id === userId);
+
+      if (user) {
+        // Redirect to survey page with user data
+        localStorage.setItem('user', JSON.stringify(user));
+        window.location.href = './survey.html';
+      } else {
+        document.getElementById('error').textContent = "Invalid username or ID.";
+      }
+    });
+  </script>
+</body>
+</html>

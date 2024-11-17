@@ -1,0 +1,19 @@
+{
+	"geolocation": {
+		"data": {
+			"city": "Shanghai",
+			"country": {
+				"code": "CN",
+				"name": "China"
+			},
+			"subdivision": {
+				"code": "SH",
+				"name": "Shanghai"
+			},
+			"timezone": "Asia/Shanghai",
+			"latitude": 31.2222,
+			"longitude": 121.4581
+		},
+		"timestamp": 1731828843896
+	}
+}

@@ -123,31 +123,39 @@
       });
 
       document.getElementById('surveyForm').addEventListener('submit', async function (e) {
-  e.preventDefault();
-  const responses = user.questions.map((_, index) => ({
-    username: user.name,
-    userId: user.id,
-    teacher: user.questions[index], // Assuming the question is about the teacher's name
-    rating: document.querySelector(`input[name="rating-q${index}"]:checked`).value,
-    comment: document.getElementById(`comment-q${index}`).value
-  }));
+        e.preventDefault();
+        const responses = user.questions.map((_, index) => ({
+          question: user.questions[index],
+          rating: document.querySelector(`input[name="rating-q${index}"]:checked`).value,
+          comment: document.getElementById(`comment-q${index}`).value
+        }));
 
-  try {
-    for (const response of responses) {
-      // Send each response to Airtable separately
-      await fetch('/.netlify/functions/submit-survey-airtable', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(response),
+        const submission = {
+          username: user.name,
+          userId: user.id,
+          responses: responses,
+        };
+
+        try {
+          const response = await fetch('/.netlify/functions/submit-survey-airtable', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(submission),
+          });
+
+          if (response.ok) {
+            alert('Thank you for completing the survey!');
+            window.location.href = './index.html';
+          } else {
+            const errorText = await response.text();
+            console.error('Server Error:', errorText);
+            alert(`Failed to submit survey: ${errorText}`);
+          }
+        } catch (error) {
+          alert('An error occurred. Please try again.');
+          console.error('Client Error:', error);
+        }
       });
-    }
-    alert('Thank you for completing the survey!');
-    window.location.href = './index.html';
-  } catch (error) {
-    alert('An error occurred. Please try again.');
-    console.error('Client Error:', error);
-  }
-});
     }
 
     function selectStars(questionIndex, starValue) {

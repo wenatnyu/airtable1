@@ -5,11 +5,69 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="styles.css">
   <title>Survey</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f5f5f5;
+    }
+    .container {
+      text-align: center;
+      background: white;
+      padding: 2rem;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      max-width: 600px;
+      width: 100%;
+    }
+    .logo {
+      max-width: 150px;
+      height: auto;
+      margin-bottom: 1.5rem;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .question {
+      text-align: left;
+      font-size: 1.1rem;
+      margin-bottom: 0.5rem;
+    }
+    input[type="text"] {
+      padding: 0.8rem;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 1rem;
+    }
+    button {
+      padding: 0.8rem;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+  </style>
 </head>
 <body>
-  <h1>Survey Page</h1>
-  <div id="surveyContainer"></div>
-  <button id="submitBtn">Submit</button>
+  <div class="container">
+    <img src="籽奥高中.png" alt="School Logo" class="logo">
+    <h1>Survey</h1>
+    <form id="surveyForm">
+      <div id="surveyContainer"></div>
+      <button type="submit">Submit</button>
+    </form>
+  </div>
 
   <script>
     // Load user data from localStorage
@@ -23,78 +81,47 @@
       const surveyContainer = document.getElementById('surveyContainer');
       user.questions.forEach((question, index) => {
         const questionElement = document.createElement('div');
+        questionElement.classList.add('question');
         questionElement.innerHTML = `
-          <label for="q${index}">${question}</label>
+          <label for="q${index}">${index + 1}. ${question}</label>
           <input type="text" id="q${index}" required>
         `;
         surveyContainer.appendChild(questionElement);
       });
 
-      // Handle submit
-    //   document.getElementById('submitBtn').addEventListener('click', async () => {
-    //     const responses = user.questions.map((_, index) => ({
-    //       question: user.questions[index],
-    //       answer: document.getElementById(`q${index}`).value
-    //     }));
+      document.getElementById('surveyForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const responses = user.questions.map((_, index) => ({
+          question: user.questions[index],
+          answer: document.getElementById(`q${index}`).value
+        }));
 
-    //     const submission = {
-    //       username: user.name,
-    //       userId: user.id,
-    //       responses: responses,
-    //     };
+        const submission = {
+          username: user.name,
+          userId: user.id,
+          responses: responses,
+        };
 
-    //     try {
-    //       const response = await fetch('/.netlify/functions/submit-survey', {
-    //         method: 'POST',
-    //         headers: { 'Content-Type': 'application/json' },
-    //         body: JSON.stringify(submission),
-    //       });
+        try {
+          const response = await fetch('/.netlify/functions/submit-survey-airtable', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(submission),
+          });
 
-    //       if (response.ok) {
-    //         alert('Thank you for completing the survey!');
-    //         window.location.href = './index.html';
-    //       } else {
-    //         alert('Failed to submit survey. Please try again later.');
-    //       }
-    //     } catch (error) {
-    //       alert('An error occurred. Please try again.');
-    //       console.error(error);
-    //     }
-    //   });
-    // }
-
-    document.getElementById('submitBtn').addEventListener('click', async () => {
-  const responses = user.questions.map((_, index) => ({
-    question: user.questions[index],
-    answer: document.getElementById(`q${index}`).value
-  }));
-
-  const submission = {
-    username: user.name,
-    userId: user.id,
-    responses: responses,
-  };
-
-  try {
-    const response = await fetch('/.netlify/functions/submit-survey-airtable', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(submission),
-    });
-
-    if (response.ok) {
-      alert('Thank you for completing the survey!');
-      window.location.href = './index.html';
-    } else {
-      const errorText = await response.text();
-      console.error('Server Error:', errorText);
-      alert(`Failed to submit survey: ${errorText}`);
-    }
-  } catch (error) {
-    alert('An error occurred. Please try again.');
-    console.error('Client Error:', error);
-  }
-});
+          if (response.ok) {
+            alert('Thank you for completing the survey!');
+            window.location.href = './index.html';
+          } else {
+            const errorText = await response.text();
+            console.error('Server Error:', errorText);
+            alert(`Failed to submit survey: ${errorText}`);
+          }
+        } catch (error) {
+          alert('An error occurred. Please try again.');
+          console.error('Client Error:', error);
+        }
+      });
     }
   </script>
 </body>

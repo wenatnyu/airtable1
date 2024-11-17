@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="styles.css">
+  <title>Survey</title>
+</head>
+<body>
+  <h1>Survey Page</h1>
+  <div id="surveyContainer"></div>
+  <button id="submitBtn">Submit</button>
+
+  <script>
+    // Load user data from localStorage
+    const user = JSON.parse(localStorage.getItem('user'));
+
+    if (!user) {
+      alert('You are not logged in!');
+      window.location.href = './index.html';
+    } else {
+      // Generate survey questions
+      const surveyContainer = document.getElementById('surveyContainer');
+      user.questions.forEach((question, index) => {
+        const questionElement = document.createElement('div');
+        questionElement.innerHTML = `
+          <label for="q${index}">${question}</label>
+          <input type="text" id="q${index}" required>
+        `;
+        surveyContainer.appendChild(questionElement);
+      });
+
+    document.getElementById('submitBtn').addEventListener('click', async () => {
+  const responses = user.questions.map((_, index) => ({
+    question: user.questions[index],
+    answer: document.getElementById(`q${index}`).value
+  }));
+
+  const submission = {
+    username: user.name,
+    userId: user.id,
+    responses: responses,
+  };
+
+  try {
+    const response = await fetch('/.netlify/functions/submit-survey-airtable', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(submission),
+    });
+
+    if (response.ok) {
+      alert('Thank you for completing the survey!');
+      window.location.href = './index.html';
+    } else {
+      const errorText = await response.text();
+      console.error('Server Error:', errorText);
+      alert(`Failed to submit survey: ${errorText}`);
+    }
+  } catch (error) {
+    alert('An error occurred. Please try again.');
+    console.error('Client Error:', error);
+  }
+});
+    }
+  </script>
+</body>
+</html>

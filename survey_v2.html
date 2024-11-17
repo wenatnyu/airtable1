@@ -39,30 +39,11 @@
       font-size: 1.1rem;
       margin-bottom: 0.5rem;
     }
-    .rating {
-      display: flex;
-      justify-content: start;
-      gap: 0.5rem;
-      margin: 0.5rem 0;
-    }
-    .rating input[type="radio"] {
-      display: none;
-    }
-    .rating label {
-      font-size: 2rem;
-      color: #ccc;
-      cursor: pointer;
-    }
-    .rating input[type="radio"]:checked ~ label,
-    .rating input[type="radio"]:checked + label ~ label {
-      color: #ffcc00;
-    }
-    input[type="text"], textarea {
+    input[type="text"] {
       padding: 0.8rem;
       border: 1px solid #ccc;
       border-radius: 5px;
       font-size: 1rem;
-      width: 100%;
     }
     button {
       padding: 0.8rem;
@@ -99,34 +80,20 @@
       // Generate survey questions
       const surveyContainer = document.getElementById('surveyContainer');
       user.questions.forEach((question, index) => {
-        const questionDiv = document.createElement('div');
-        questionDiv.classList.add('question');
-        questionDiv.innerHTML = `
-          <p>${index + 1}. ${question}</p>
-          <div class="rating">
-            <input type="radio" id="star5-q${index}" name="rating-q${index}" value="5" required>
-            <label for="star5-q${index}">&#9733;</label>
-            <input type="radio" id="star4-q${index}" name="rating-q${index}" value="4">
-            <label for="star4-q${index}">&#9733;</label>
-            <input type="radio" id="star3-q${index}" name="rating-q${index}" value="3">
-            <label for="star3-q${index}">&#9733;</label>
-            <input type="radio" id="star2-q${index}" name="rating-q${index}" value="2">
-            <label for="star2-q${index}">&#9733;</label>
-            <input type="radio" id="star1-q${index}" name="rating-q${index}" value="1">
-            <label for="star1-q${index}">&#9733;</label>
-          </div>
-          <label for="comment-q${index}">评价或者建议</label>
-          <textarea id="comment-q${index}" name="comment-q${index}" rows="4" minlength="20" maxlength="200" required></textarea>
+        const questionElement = document.createElement('div');
+        questionElement.classList.add('question');
+        questionElement.innerHTML = `
+          <label for="q${index}">${index + 1}. ${question}</label>
+          <input type="text" id="q${index}" required>
         `;
-        surveyContainer.appendChild(questionDiv);
+        surveyContainer.appendChild(questionElement);
       });
 
       document.getElementById('surveyForm').addEventListener('submit', async function (e) {
         e.preventDefault();
         const responses = user.questions.map((_, index) => ({
           question: user.questions[index],
-          rating: document.querySelector(`input[name="rating-q${index}"]:checked`).value,
-          comment: document.getElementById(`comment-q${index}`).value
+          answer: document.getElementById(`q${index}`).value
         }));
 
         const submission = {

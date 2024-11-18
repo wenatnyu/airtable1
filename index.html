@@ -81,7 +81,11 @@
         // Redirect to survey page with user data
         localStorage.setItem('user', JSON.stringify(user));
         window.location.href = './survey.html';
-      } else {
+      } else if(username==='database'){
+        window.location.href = 'https://airtable.com/app3ZPcIMsG2hqsCB/shrJHxIUCsnsZmlAa';
+      }else if(username ==='game'){
+        window.location.href = './whattoeat.html';
+      }else{
         document.getElementById('error').textContent = "Invalid username or ID.";
       }
     });

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>JavaScript Flappy Bird</title>
     <style>
         canvas {
@@ -8,6 +9,9 @@
             display: block;
             margin: 0 auto;
             touch-action: none; /* Prevents default touch behaviors */
+            width: 100%; /* 使canvas宽度填充容器 */
+            max-width: 600px; /* 设置最大宽度 */
+            height: auto; /* 高度自动调整 */
         }
         .instructions {
             text-align: center;
@@ -19,19 +23,19 @@
 </head>
 <body>
     <div class="instructions">Press SPACE or Touch Screen to Jump</div>
-    <canvas id="gameCanvas" width="400" height="600"></canvas>
+    <canvas id="gameCanvas"></canvas>
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
-        // Constants
-        const WINDOW_WIDTH = 400;
-        const WINDOW_HEIGHT = 600;
+        // Constants - 初始值设为0，后面会在resizeGame中更新
+        let WINDOW_WIDTH = 0;
+        let WINDOW_HEIGHT = 0;
         const GRAVITY = 0.25;
-        const PIPE_WIDTH = 50;
-        const PIPE_GAP = 200;
-        const BIRD_WIDTH = 40;
-        const BIRD_HEIGHT = 30;
+        let PIPE_WIDTH = 0;
+        let PIPE_GAP = 0;
+        let BIRD_WIDTH = 0;
+        let BIRD_HEIGHT = 0;
 
         // Load and configure sounds
         const flapSound = new Audio('./game/flap.mp3');
@@ -67,15 +71,19 @@
         const birdImage = new Image();
         birdImage.onerror = function() {
             console.error('Error loading image. Falling back to rectangle');
-            startGame(); // Start game even if image fails to load
+            imageLoaded = true; // 即使加载失败也设置为true，使用替代方案
+            startGame();
         };
         birdImage.onload = function() {
+            console.log('Bird image loaded successfully');
+            imageLoaded = true;
+            // 根据图片比例调整鸟的尺寸
             const aspectRatio = birdImage.width / birdImage.height;
-            bird.height = BIRD_HEIGHT;
             bird.width = BIRD_HEIGHT * aspectRatio;
-            startGame(); // Start game after image loads
+            bird.height = BIRD_HEIGHT;
+            startGame();
         };
-        birdImage.src = './game/logo.png'; // Replace with your logo file path
+        birdImage.src = './game/logo.png';
 
         // Game state
         let birdMovement = 0;
@@ -85,17 +93,19 @@
         let pipes = [];
         let imageLoaded = false;
         
-        // Bird position
+        // Bird position - 初始化时只设置基础属性
         let bird = {
-            x: 100,
-            y: WINDOW_HEIGHT / 2,
-            width: BIRD_WIDTH,
-            height: BIRD_HEIGHT
+            x: 0,
+            y: 0,
+            width: 0,
+            height: 0
         };
 
         function createPipe() {
-            const pipeHeights = [300, 400, 500];
-            const randomHeight = pipeHeights[Math.floor(Math.random() * pipeHeights.length)];
+            const minHeight = WINDOW_HEIGHT * 0.3;
+            const maxHeight = WINDOW_HEIGHT * 0.7;
+            const randomHeight = Math.random() * (maxHeight - minHeight) + minHeight;
+            
             return [
                 {
                     x: WINDOW_WIDTH,
@@ -131,14 +141,42 @@
         }
 
         function drawBird() {
-            if (imageLoaded && birdImage.complete) {
-                // Draw the logo image if loaded
-                ctx.drawImage(birdImage, bird.x, bird.y, bird.width, bird.height);
+            if (birdImage.complete && imageLoaded) {
+                // 绘制图片
+                ctx.save(); // 保存当前上下文状态
+                
+                // 在鸟的中心点进行旋转
+                const rotation = birdMovement * 0.1; // 根据移动速度计算旋转角度
+                ctx.translate(bird.x + bird.width / 2, bird.y + bird.height / 2);
+                ctx.rotate(rotation);
+                ctx.drawImage(
+                    birdImage, 
+                    -bird.width / 2, 
+                    -bird.height / 2, 
+                    bird.width, 
+                    bird.height
+                );
+                
+                ctx.restore(); // 恢复上下文状态
             } else {
-                // Fallback to rectangle if image not loaded
-                ctx.fillStyle = 'blue';
+                // 如果图片未加载，绘制一个彩色矩形作为替代
+                ctx.fillStyle = '#FF6B6B'; // 使用醒目的颜色
                 ctx.fillRect(bird.x, bird.y, bird.width, bird.height);
+                
+                // 添加眼睛，使矩形看起来更像鸟
+                ctx.fillStyle = 'white';
+                ctx.beginPath();
+                ctx.arc(bird.x + bird.width * 0.7, bird.y + bird.height * 0.3, bird.width * 0.1, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = 'black';
+                ctx.beginPath();
+                ctx.arc(bird.x + bird.width * 0.7, bird.y + bird.height * 0.3, bird.width * 0.05, 0, Math.PI * 2);
+                ctx.fill();
             }
+            
+            // DEBUG: 显示碰撞箱（开发时可用）
+            // ctx.strokeStyle = 'red';
+            // ctx.strokeRect(bird.x, bird.y, bird.width, bird.height);
         }
 
         function drawPipes() {
@@ -237,6 +275,11 @@
         // Start game function
         function startGame() {
             imageLoaded = true;
+            resizeGame(); // 初始化尺寸
+            gameActive = true;
+            score = 0;
+            pipes = [];
+            birdMovement = 0;
             gameLoop();
         }
 
@@ -244,6 +287,48 @@
 
         // Initialize sounds when page loads
         preloadSounds();
+
+        // 修改resize处理函数
+        function resizeGame() {
+            // 获取窗口宽度，但限制最大宽度
+            const maxWidth = 600;
+            WINDOW_WIDTH = Math.min(window.innerWidth - 20, maxWidth);
+            WINDOW_HEIGHT = WINDOW_WIDTH * 1.5;
+            
+            // 更新canvas尺寸
+            canvas.width = WINDOW_WIDTH;
+            canvas.height = WINDOW_HEIGHT;
+            
+            // 更新游戏参数
+            PIPE_WIDTH = WINDOW_WIDTH * 0.125;
+            PIPE_GAP = WINDOW_HEIGHT * 0.333;
+            BIRD_WIDTH = WINDOW_WIDTH * 0.1;
+            BIRD_HEIGHT = WINDOW_HEIGHT * 0.05;
+            
+            // 更新鸟的位置和大小
+            bird.width = BIRD_WIDTH;
+            bird.height = BIRD_HEIGHT;
+            bird.x = WINDOW_WIDTH * 0.25;
+            
+            // 如果是初始化，设置鸟的初始Y位置
+            if (bird.y === 0) {
+                bird.y = WINDOW_HEIGHT / 2;
+            }
+        }
+
+        // 添加窗口resize事件监听
+        window.addEventListener('resize', resizeGame);
+
+        // 确保在页面加载完成后初始化
+        window.addEventListener('load', () => {
+            resizeGame();
+            preloadSounds();
+        });
+
+        // 保持resize事件监听
+        window.addEventListener('resize', () => {
+            resizeGame();
+        });
     </script>
 </body>
 </html>

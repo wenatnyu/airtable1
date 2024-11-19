@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>JavaScript Flappy Bird</title>
+    <style>
+        canvas {
+            border: 1px solid black;
+            display: block;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="400" height="600"></canvas>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Constants
+        const WINDOW_WIDTH = 400;
+        const WINDOW_HEIGHT = 600;
+        const GRAVITY = 0.25;
+        const PIPE_WIDTH = 50;
+        const PIPE_GAP = 200;
+        const BIRD_WIDTH = 40;
+        const BIRD_HEIGHT = 30;
+
+        // Load and configure sounds
+        const flapSound = new Audio('./game/flap.mp3');
+        const scoreSound = new Audio('./game/score.mp3');
+        const hitSound = new Audio('./game/hit.mp3');
+
+        // Set volume for all sounds (0.0 to 1.0)
+        flapSound.volume = 0.5;
+        scoreSound.volume = 0.5;
+        hitSound.volume = 0.5;
+
+        // Preload sounds
+        function preloadSounds() {
+            flapSound.load();
+            scoreSound.load();
+            hitSound.load();
+        }
+
+        // Play sounds with error handling
+        function playSound(sound) {
+            try {
+                // Reset sound to start if it's already playing
+                sound.currentTime = 0;
+                sound.play().catch(error => {
+                    console.log("Sound play failed:", error);
+                });
+            } catch (error) {
+                console.log("Sound error:", error);
+            }
+        }
+
+        // Load bird image with error handling
+        const birdImage = new Image();
+        birdImage.onerror = function() {
+            console.error('Error loading image. Falling back to rectangle');
+            startGame(); // Start game even if image fails to load
+        };
+        birdImage.onload = function() {
+            const aspectRatio = birdImage.width / birdImage.height;
+            bird.height = BIRD_HEIGHT;
+            bird.width = BIRD_HEIGHT * aspectRatio;
+            startGame(); // Start game after image loads
+        };
+        birdImage.src = './game/logo.png'; // Replace with your logo file path
+
+        // Game state
+        let birdMovement = 0;
+        let gameActive = true;
+        let score = 0;
+        let highScore = 0;
+        let pipes = [];
+        let imageLoaded = false;
+        
+        // Bird position
+        let bird = {
+            x: 100,
+            y: WINDOW_HEIGHT / 2,
+            width: BIRD_WIDTH,
+            height: BIRD_HEIGHT
+        };
+
+        function createPipe() {
+            const pipeHeights = [300, 400, 500];
+            const randomHeight = pipeHeights[Math.floor(Math.random() * pipeHeights.length)];
+            return [
+                {
+                    x: WINDOW_WIDTH,
+                    y: randomHeight,
+                    width: PIPE_WIDTH,
+                    height: WINDOW_HEIGHT - randomHeight
+                },
+                {
+                    x: WINDOW_WIDTH,
+                    y: 0,
+                    width: PIPE_WIDTH,
+                    height: randomHeight - PIPE_GAP
+                }
+            ];
+        }
+
+        function checkCollision() {
+            if (bird.y <= 0 || bird.y + bird.height >= WINDOW_HEIGHT) {
+                playSound(hitSound);
+                return false;
+            }
+
+            for (let pipe of pipes) {
+                if (bird.x < pipe.x + pipe.width &&
+                    bird.x + bird.width > pipe.x &&
+                    bird.y < pipe.y + pipe.height &&
+                    bird.y + bird.height > pipe.y) {
+                    playSound(hitSound);
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        function drawBird() {
+            if (imageLoaded && birdImage.complete) {
+                // Draw the logo image if loaded
+                ctx.drawImage(birdImage, bird.x, bird.y, bird.width, bird.height);
+            } else {
+                // Fallback to rectangle if image not loaded
+                ctx.fillStyle = 'blue';
+                ctx.fillRect(bird.x, bird.y, bird.width, bird.height);
+            }
+        }
+
+        function drawPipes() {
+            ctx.fillStyle = 'green';
+            pipes.forEach(pipe => {
+                ctx.fillRect(pipe.x, pipe.y, pipe.width, pipe.height);
+            });
+        }
+
+        function drawScore() {
+            ctx.fillStyle = 'black';
+            ctx.font = '36px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(`Score: ${Math.floor(score)}`, WINDOW_WIDTH/2, 50);
+            
+            if (!gameActive) {
+                ctx.fillText(`High Score: ${highScore}`, WINDOW_WIDTH/2, 100);
+                ctx.font = '24px Arial';
+                ctx.fillText('Press Space to Restart', WINDOW_WIDTH/2, WINDOW_HEIGHT/2);
+            }
+        }
+
+        function gameLoop() {
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+
+            if (gameActive) {
+                birdMovement += GRAVITY;
+                bird.y += birdMovement;
+
+                pipes.forEach(pipe => {
+                    pipe.x -= 5;
+                });
+
+                pipes = pipes.filter(pipe => pipe.x > -PIPE_WIDTH);
+
+                if (pipes.length === 0 || pipes[pipes.length - 2].x < WINDOW_WIDTH - 300) {
+                    pipes.push(...createPipe());
+                }
+
+                pipes.forEach(pipe => {
+                    if (pipe.x + pipe.width === 100) {
+                        score += 0.5;
+                        playSound(scoreSound);
+                    }
+                });
+
+                gameActive = checkCollision();
+
+                drawPipes();
+                drawBird();
+            } else {
+                if (score > highScore) {
+                    highScore = Math.floor(score);
+                }
+            }
+
+            drawScore();
+            requestAnimationFrame(gameLoop);
+        }
+
+        document.addEventListener('keydown', (event) => {
+            if (event.code === 'Space') {
+                if (gameActive) {
+                    birdMovement = -7;
+                    playSound(flapSound);
+                } else {
+                    gameActive = true;
+                    pipes = [];
+                    bird.y = WINDOW_HEIGHT / 2;
+                    birdMovement = 0;
+                    score = 0;
+                }
+                event.preventDefault();
+            }
+        });
+
+        // Start game function
+        function startGame() {
+            imageLoaded = true;
+            gameLoop();
+        }
+
+        // Don't start game loop immediately - wait for image or error
+
+        // Initialize sounds when page loads
+        preloadSounds();
+    </script>
+</body>
+</html>
+

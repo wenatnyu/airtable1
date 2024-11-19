@@ -7,10 +7,18 @@
             border: 1px solid black;
             display: block;
             margin: 0 auto;
+            touch-action: none; /* Prevents default touch behaviors */
+        }
+        .instructions {
+            text-align: center;
+            margin: 10px;
+            font-family: Arial, sans-serif;
+            color: #333;
         }
     </style>
 </head>
 <body>
+    <div class="instructions">Press SPACE or Touch Screen to Jump</div>
     <canvas id="gameCanvas" width="400" height="600"></canvas>
     <script>
         const canvas = document.getElementById('gameCanvas');
@@ -149,7 +157,7 @@
             if (!gameActive) {
                 ctx.fillText(`High Score: ${highScore}`, WINDOW_WIDTH/2, 100);
                 ctx.font = '24px Arial';
-                ctx.fillText('Press Space to Restart', WINDOW_WIDTH/2, WINDOW_HEIGHT/2);
+                ctx.fillText('Press Space or Touch to Restart', WINDOW_WIDTH/2, WINDOW_HEIGHT/2);
             }
         }
 
@@ -192,20 +200,38 @@
             requestAnimationFrame(gameLoop);
         }
 
+        // Add touch/click controls
+        function handleJump() {
+            if (gameActive) {
+                birdMovement = -7;
+                playSound(flapSound);
+            } else {
+                gameActive = true;
+                pipes = [];
+                bird.y = WINDOW_HEIGHT / 2;
+                birdMovement = 0;
+                score = 0;
+            }
+        }
+
+        // Event listeners for multiple control methods
         document.addEventListener('keydown', (event) => {
             if (event.code === 'Space') {
-                if (gameActive) {
-                    birdMovement = -7;
-                    playSound(flapSound);
-                } else {
-                    gameActive = true;
-                    pipes = [];
-                    bird.y = WINDOW_HEIGHT / 2;
-                    birdMovement = 0;
-                    score = 0;
-                }
-                event.preventDefault();
+                handleJump();
+                event.preventDefault(); // Prevent page scrolling
             }
+        });
+
+        // Touch controls
+        canvas.addEventListener('touchstart', (event) => {
+            handleJump();
+            event.preventDefault(); // Prevent default touch behaviors
+        });
+
+        // Mouse controls
+        canvas.addEventListener('click', (event) => {
+            handleJump();
+            event.preventDefault();
         });
 
         // Start game function

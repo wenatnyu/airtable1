@@ -104,7 +104,7 @@
       // 定义新的问题
       const questions = [
         {
-          text: "你想对殷闻老师说的话，建议或者意见都可以（至少20字）",
+          text: "你想对殷闻老师说的话（建议或者意见都可以）",
           requireRating: false,
           requireLength: true
         },
@@ -123,7 +123,7 @@
         questionDiv.innerHTML = `
           <p>${index + 1}. ${question.text}</p>
           <textarea id="comment-q${index}" name="comment-q${index}" rows="4" 
-            ${question.requireLength ? 'minlength="20" maxlength="200"' : ''} required></textarea>
+            ${question.requireLength ? 'minlength="1" maxlength="200"' : ''} required></textarea>
           <div id="error-q${index}" class="error-message"></div>
         `;
         surveyContainer.appendChild(questionDiv);
@@ -138,9 +138,9 @@
           const errorElement = document.getElementById(`error-q${index}`);
           errorElement.textContent = '';
 
-          if (question.requireLength && (comment.value.length < 20 || comment.value.length > 200)) {
+          if (question.requireLength && (comment.value.length < 1 || comment.value.length > 200)) {
             allCommentsValid = false;
-            errorElement.innerHTML = '评论必须在 20 到 200 字之间 (Comment must be between 20 and 200 characters)';
+            errorElement.innerHTML = '评论必须在 1 到 200 字之间 (Comment must be between 20 and 200 characters)';
           }
         });
 

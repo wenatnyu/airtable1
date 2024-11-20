@@ -64,7 +64,7 @@ exports.handler = async (event) => {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
       },
-      body: JSON.stringify({ message: 'Response submitted successfully!' }),
+      body: JSON.stringify({ message: '提交成功 Response submitted successfully!' }),
     };
   } catch (error) {
     console.error('Error processing request:', error);

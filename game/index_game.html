@@ -53,7 +53,7 @@
             <div id="finalScore" style="font-size: 24px; margin: 10px;"></div>
             <div id="schoolRecord" style="font-size: 20px; margin: 10px; color: #FF4081;"></div>
             <div id="funnyMessage" style="font-size: 18px; margin: 10px; color: #666;"></div>
-            <button onclick="restartGame()" style="padding: 10px 20px; font-size: 18px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer;">再来一局</button>
+            <button onclick="restartGame()" style="padding: 10px 20px; font-size: 18px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; transition: all 0.3s ease;">再来一局</button>
         </div>
     </div>
 
@@ -194,7 +194,7 @@
                     ctx.textBaseline = 'middle';
                     
                     // 计算当前应该显示哪个字符
-                    const pairIndex = Math.floor(index / 2);  // 获取水管对的索引
+                    const pairIndex = Math.floor(index / 2);  // 获取水管对索引
                     const charIndex = (pairIndex + currentCharIndex) % pipeText.length;
                     const char = pipeText[charIndex];
                     
@@ -254,12 +254,11 @@
 
         // 修改游戏结束逻辑
         async function showVipEndScreen() {
-            // 播放对应角色的结束音频
-            const currentCharacter = birdImage.src.split('/').pop();
-            if (currentCharacter === 'wzj.png') {
-                playSound(endSoundWu);
-            } else if (currentCharacter === 'david.png') {
-                playSound(endSoundDavid);
+            const user = JSON.parse(localStorage.getItem('user'));
+            if (!user || !user.name) {
+                console.error('User not found in localStorage');
+                window.location.href = '../index.html';
+                return;
             }
             
             const vipScreen = document.getElementById('vipEndScreen');
@@ -267,8 +266,22 @@
             const finalScore = document.getElementById('finalScore');
             const schoolRecord = document.getElementById('schoolRecord');
             const funnyMessage = document.getElementById('funnyMessage');
+            const restartButton = document.querySelector('#vipEndScreen button');
             
-            // 显示结算界面
+            // 禁用重启按钮并改变样式
+            restartButton.disabled = true;
+            restartButton.style.backgroundColor = '#cccccc';
+            restartButton.style.cursor = 'not-allowed';
+            restartButton.textContent = '加载中...';
+            
+            // 播放音效和显示基本界面
+            const currentCharacter = birdImage.src.split('/').pop();
+            if (currentCharacter === 'wzj.png') {
+                playSound(endSoundWu);
+            } else if (currentCharacter === 'david.png') {
+                playSound(endSoundDavid);
+            }
+            
             vipScreen.style.display = 'block';
             
             // 创建角色动画
@@ -280,16 +293,27 @@
             characterAnimation.innerHTML = '';
             characterAnimation.appendChild(character);
             
-            // 显示当前分数
-            finalScore.textContent = `最终得分: ${Math.floor(score)}`;
+            // 显示加载状态
+            schoolRecord.textContent = '正在加载最高分记录...';
+            finalScore.textContent = '计算得分中...';
             
             try {
-                // 获取用户名（假设已经存储在 localStorage 中）
-                const user = JSON.parse(localStorage.getItem('user'));
-                if (!user || !user.name) throw new Error('User not found');
-
-                // 提交分数到 Airtable
-                const response = await fetch('/.netlify/functions/submit-game-score', {
+                // 获取最高分记录
+                const topScoreResponse = await fetch('/.netlify/functions/get-top-score');
+                if (!topScoreResponse.ok) {
+                    throw new Error('Failed to fetch top score');
+                }
+                const topScoreData = await topScoreResponse.json();
+                
+                // 显示最高分记录
+                schoolRecord.textContent = `校记录保持者: ${topScoreData.topPlayer} (${topScoreData.topScore}分)`;
+                
+                // 短暂延迟后显示当前分数
+                await new Promise(resolve => setTimeout(resolve, 500));
+                finalScore.textContent = `最终得分: ${Math.floor(score)}`;
+                
+                // 提交当前分数
+                await fetch('/.netlify/functions/submit-game-score', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -297,23 +321,38 @@
                         score: Math.floor(score)
                     })
                 });
-
-                const data = await response.json();
                 
-                // 显示校记录
-                if (data.highScore) {
-                    schoolRecord.textContent = `校记录: ${data.highScore.score} (${data.highScore.username})`;
-                    schoolRecord.style.display = 'block';
+                // 检查是否打破记录
+                if (Math.floor(score) > topScoreData.topScore) {
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    schoolRecord.textContent = `新的记录保持者: ${user.name} (${Math.floor(score)}分)!`;
+                    schoolRecord.style.color = '#FF4081';
+                    schoolRecord.style.fontWeight = 'bold';
                 }
+                
+                // 显示随机搞笑消息
+                const messages = funnyMessages[currentCharacter];
+                const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+                funnyMessage.textContent = randomMessage;
+                
+                // 启用重启按钮
+                restartButton.disabled = false;
+                restartButton.style.backgroundColor = '#4CAF50';
+                restartButton.style.cursor = 'pointer';
+                restartButton.textContent = '再来一局';
+                
             } catch (error) {
-                console.error('Error submitting score:', error);
-                schoolRecord.style.display = 'none';
+                console.error('Error:', error);
+                schoolRecord.textContent = '无法获取校记录信息';
+                finalScore.textContent = `最终得分: ${Math.floor(score)}`;
+                funnyMessage.textContent = '发生错误，请稍后再试';
+                
+                // 即使出错也启用重启按钮
+                restartButton.disabled = false;
+                restartButton.style.backgroundColor = '#4CAF50';
+                restartButton.style.cursor = 'pointer';
+                restartButton.textContent = '再来一局';
             }
-            
-            // 显示随机搞笑消息
-            const messages = funnyMessages[birdImage.src.split('/').pop()];
-            const randomMessage = messages[Math.floor(Math.random() * messages.length)];
-            funnyMessage.textContent = randomMessage;
         }
 
         // 添加重启游戏函数
@@ -326,6 +365,7 @@
         function checkCollision() {
             if (bird.y <= 0 || bird.y + bird.height >= WINDOW_HEIGHT) {
                 playSound(hitSound);
+                gameActive = false;
                 showVipEndScreen();
                 return false;
             }
@@ -336,6 +376,7 @@
                     bird.y < pipe.y + pipe.height &&
                     bird.y + bird.height > pipe.y) {
                     playSound(hitSound);
+                    gameActive = false;
                     showVipEndScreen();
                     return false;
                 }
@@ -344,42 +385,42 @@
         }
 
         function drawBird() {
-            if (birdImage.complete && imageLoaded) {
-                // 绘制图片
-                ctx.save(); // 保存当前上下文状态
-                
-                // 在鸟的中心点进行旋转
-                const rotation = birdMovement * 0.1; // 根据移动速度计算旋转角度
+            if (imageLoaded) {
+                ctx.save();
                 ctx.translate(bird.x + bird.width / 2, bird.y + bird.height / 2);
-                ctx.rotate(rotation);
+                ctx.rotate(birdMovement * 0.02);
+
+                // 开始裁剪路径
+                ctx.beginPath();
+                
+                // 绘制椭圆
+                ctx.ellipse(
+                    0,              // 中心点x
+                    0,              // 中心点y
+                    bird.width/2,   // 横向半径
+                    bird.height/2,  // 纵向半径
+                    0,              // 旋转角度
+                    0,              // 起始角度
+                    Math.PI * 2     // 结束角度
+                );
+                
+                // 应用裁剪
+                ctx.clip();
+
+                // 绘制原始图片
                 ctx.drawImage(
-                    birdImage, 
-                    -bird.width / 2, 
-                    -bird.height / 2, 
-                    bird.width, 
+                    birdImage,
+                    -bird.width / 2,
+                    -bird.height / 2,
+                    bird.width,
                     bird.height
                 );
                 
-                ctx.restore(); // 恢复上下文状态
+                ctx.restore();
             } else {
-                // 如果图片未加载，绘制一个彩色矩形作为替代
-                ctx.fillStyle = '#FF6B6B'; // 使用醒目的颜色
+                ctx.fillStyle = 'red';
                 ctx.fillRect(bird.x, bird.y, bird.width, bird.height);
-                
-                // 添加眼睛，使矩形看起来更像鸟
-                ctx.fillStyle = 'white';
-                ctx.beginPath();
-                ctx.arc(bird.x + bird.width * 0.7, bird.y + bird.height * 0.3, bird.width * 0.1, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.fillStyle = 'black';
-                ctx.beginPath();
-                ctx.arc(bird.x + bird.width * 0.7, bird.y + bird.height * 0.3, bird.width * 0.05, 0, Math.PI * 2);
-                ctx.fill();
             }
-            
-            // DEBUG: 显示碰撞箱（开发时可用）
-            // ctx.strokeStyle = 'red';
-            // ctx.strokeRect(bird.x, bird.y, bird.width, bird.height);
         }
 
         function drawScore() {

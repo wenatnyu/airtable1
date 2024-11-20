@@ -70,20 +70,30 @@
         let BIRD_HEIGHT = 0;
 
         // Load and configure sounds
-        const flapSound = new Audio('./flap.mp3');
+        const flapSoundWu = new Audio('./flap_wu.mp3');
+        const flapSoundDavid = new Audio('./flap_david.wav');
         const scoreSound = new Audio('./score.mp3');
         const hitSound = new Audio('./hit.mp3');
+        const endSoundWu = new Audio('./wu_end.mp3');
+        const endSoundDavid = new Audio('./david_end.mp3');
+        let currentFlapSound; // 用于存储当前角色的拍打音效
 
         // Set volume for all sounds (0.0 to 1.0)
-        flapSound.volume = 0.5;
+        flapSoundWu.volume = 0.5;
+        flapSoundDavid.volume = 0.5;
         scoreSound.volume = 0.5;
         hitSound.volume = 0.5;
+        endSoundWu.volume = 0.5;
+        endSoundDavid.volume = 0.5;
 
         // Preload sounds
         function preloadSounds() {
-            flapSound.load();
+            flapSoundWu.load();
+            flapSoundDavid.load();
             scoreSound.load();
             hitSound.load();
+            endSoundWu.load();
+            endSoundDavid.load();
         }
 
         // Play sounds with error handling
@@ -104,6 +114,13 @@
         let imageLoaded = false;
 
         function selectCharacter(imagePath) {
+            // 设置当前角色的拍打音效
+            if (imagePath.includes('wzj.png')) {
+                currentFlapSound = flapSoundWu;
+            } else if (imagePath.includes('david.png')) {
+                currentFlapSound = flapSoundDavid;
+            }
+            
             // 隐藏角色选择界面，显示游戏界面
             document.getElementById('characterSelect').style.display = 'none';
             document.getElementById('gameContainer').style.display = 'block';
@@ -223,19 +240,27 @@
         // 添加搞笑消息数组
         const funnyMessages = {
             'wzj.png': [
-                "王老师说：这次考试考得不错！",
-                "下次我一定飞得更高！",
-                "看来我的物理没白教！"
+                "吴校长说：你这个年纪上课睡得着觉？",
+                "吴校长说：下次我一定飞得更高！",
+                "吴校长说：看来我的数学没白教！"
             ],
             'david.png': [
                 "David says: Not bad at all!",
-                "Let's try one more time!",
-                "Physics in action!"
+                "David says: Let's try one more time!",
+                "David says: One World，One Beauty!"
             ]
         };
 
         // 修改游戏结束逻辑
         async function showVipEndScreen() {
+            // 播放对应角色的结束音频
+            const currentCharacter = birdImage.src.split('/').pop();
+            if (currentCharacter === 'wzj.png') {
+                playSound(endSoundWu);
+            } else if (currentCharacter === 'david.png') {
+                playSound(endSoundDavid);
+            }
+            
             const vipScreen = document.getElementById('vipEndScreen');
             const characterAnimation = document.getElementById('characterAnimation');
             const finalScore = document.getElementById('finalScore');
@@ -412,7 +437,7 @@
         function handleJump() {
             if (gameActive) {
                 birdMovement = -7;
-                playSound(flapSound);
+                playSound(currentFlapSound); // 使用当前角色的拍打音效
             } else {
                 gameActive = true;
                 pipes = [];

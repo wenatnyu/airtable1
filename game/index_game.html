@@ -114,7 +114,13 @@
         const birdImage = new Image();
         let imageLoaded = false;
 
+        const bgMusic = new Audio('bgm.mp3');
+        bgMusic.loop = true;
+
         function selectCharacter(imagePath) {
+            // 开始播放背景音乐
+            bgMusic.play().catch(error => console.log('Auto-play prevented'));
+            
             // 设置当前角色的拍打音效
             if (imagePath.includes('wzj.png')) {
                 currentFlapSound = flapSoundWu;

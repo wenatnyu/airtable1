@@ -101,72 +101,50 @@
       alert('You are not logged in!');
       window.location.href = './index.html';
     } else {
+      // 定义新的问题
+      const questions = [
+        {
+          text: "你想对殷闻老师说的话，建议或者意见都可以（至少20字）",
+          requireRating: false,
+          requireLength: true
+        },
+        {
+          text: "你想对籽奥说的话",
+          requireRating: false,
+          requireLength: false
+        }
+      ];
+
       // Generate survey questions
       const surveyContainer = document.getElementById('surveyContainer');
-      user.questions.forEach((question, index) => {
+      questions.forEach((question, index) => {
         const questionDiv = document.createElement('div');
         questionDiv.classList.add('question');
         questionDiv.innerHTML = `
-          <p>${index + 1}. ${question}</p>
-          <div class="rating" data-question-index="${index}">
-            <input type="radio" id="star1-q${index}" name="rating-q${index}" value="1" required>
-            <label for="star1-q${index}" data-value="1">&#9733;</label>
-            <input type="radio" id="star2-q${index}" name="rating-q${index}" value="2">
-            <label for="star2-q${index}" data-value="2">&#9733;</label>
-            <input type="radio" id="star3-q${index}" name="rating-q${index}" value="3">
-            <label for="star3-q${index}" data-value="3">&#9733;</label>
-            <input type="radio" id="star4-q${index}" name="rating-q${index}" value="4">
-            <label for="star4-q${index}" data-value="4">&#9733;</label>
-            <input type="radio" id="star5-q${index}" name="rating-q${index}" value="5">
-            <label for="star5-q${index}" data-value="5">&#9733;</label>
-          </div>
-          <label for="comment-q${index}">评价或者建议（不少于20字）</label>
-          <textarea id="comment-q${index}" name="comment-q${index}" rows="4" minlength="20" maxlength="200" required></textarea>
+          <p>${index + 1}. ${question.text}</p>
+          <textarea id="comment-q${index}" name="comment-q${index}" rows="4" 
+            ${question.requireLength ? 'minlength="20" maxlength="200"' : ''} required></textarea>
           <div id="error-q${index}" class="error-message"></div>
         `;
         surveyContainer.appendChild(questionDiv);
       });
 
-      document.querySelectorAll('.rating label').forEach(label => {
-        label.addEventListener('click', function() {
-          const questionIndex = this.parentElement.getAttribute('data-question-index');
-          const starValue = parseInt(this.getAttribute('data-value'));
-          for (let i = 1; i <= 5; i++) {
-            const star = document.getElementById(`star${i}-q${questionIndex}`);
-            const starLabel = document.querySelector(`label[for="star${i}-q${questionIndex}"]`);
-            if (i <= starValue) {
-              star.checked = true;
-              starLabel.classList.add('selected');
-            } else {
-              star.checked = false;
-              starLabel.classList.remove('selected');
-            }
-          }
-        });
-      });
-
       document.getElementById('surveyForm').addEventListener('submit', async function (e) {
         e.preventDefault();
-        let allRated = true;
         let allCommentsValid = true;
 
-        user.questions.forEach((_, index) => {
-          const rating = document.querySelector(`input[name="rating-q${index}"]:checked`);
+        questions.forEach((question, index) => {
           const comment = document.getElementById(`comment-q${index}`);
           const errorElement = document.getElementById(`error-q${index}`);
           errorElement.textContent = '';
 
-          if (!rating) {
-            allRated = false;
-            errorElement.innerHTML = '请给这个问题评分 (Please rate this question)';
-          }
-          if (comment.value.length < 20 || comment.value.length > 200) {
+          if (question.requireLength && (comment.value.length < 20 || comment.value.length > 200)) {
             allCommentsValid = false;
-            errorElement.innerHTML += ' 评论必须在 20 到 200 字之间 (Comment must be between 20 and 200 characters)';
+            errorElement.innerHTML = '评论必须在 20 到 200 字之间 (Comment must be between 20 and 200 characters)';
           }
         });
 
-        if (!allRated || !allCommentsValid) {
+        if (!allCommentsValid) {
           const firstError = document.querySelector('.error-message:not(:empty)');
           if (firstError) {
             firstError.scrollIntoView({ behavior: 'smooth' });
@@ -181,16 +159,13 @@
           submitButton.style.backgroundColor = '#ccc';
           submitButton.style.cursor = 'not-allowed';
 
-          const responses = user.questions.map((_, index) => ({
+          const responses = questions.map((_, index) => ({
             username: user.name,
-            userId: user.id,
-            teacher: user.questions[index].match(/教师\s(.*?)\s的满意度/)[1],
-            rating: document.querySelector(`input[name="rating-q${index}"]:checked`).value,
+            questionNumber: index + 1,
             comment: document.getElementById(`comment-q${index}`).value
           }));
 
           for (const response of responses) {
-            // Send each response to Airtable separately
             await fetch('/.netlify/functions/submit-survey-airtable', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -198,9 +173,7 @@
             });
           }
           alert('Thank you for completing the survey!');
-          // window.location.href = './index.html';
-          // window.location.href = './jntm.gif';
-          window.location.href = './index_game.html';
+          window.location.href = './game/index_game.html';
         } catch (error) {
           const submitButton = document.querySelector('button[type="submit"]');
           submitButton.disabled = false;

@@ -117,6 +117,16 @@
         const bgMusic = new Audio('bgm.mp3');
         bgMusic.loop = true;
 
+        // 在页面加载完成时立即播放
+        document.addEventListener('DOMContentLoaded', function() {
+            bgMusic.play().catch(() => {
+                // 如果自动播放失败，等待第一次用户交互时播放
+                document.addEventListener('click', () => {
+                    bgMusic.play();
+                }, { once: true });
+            });
+        });
+
         function selectCharacter(imagePath) {
             // 开始播放背景音乐
             bgMusic.play().catch(error => console.log('Auto-play prevented'));

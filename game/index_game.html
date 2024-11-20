@@ -191,67 +191,70 @@
             height: 0
         };
 
-        // 添加要显示的文字
-        const pipeText = "每一个孩子都是独一无二的研究学生就是研究教育世界因我而美丽";
-        let currentCharIndex = 0;
+        // 1. 添加文字数组（在游戏变量声明区域）
+        const pipeTexts = [
+            '每', '一', '个', '孩', '子', '都', '是', 
+            '独', '一', '无', '二', '的', '研', '究',
+            '学', '生', '就', '是', '研', '究', '教',
+            '育', '世', '界', '因', '我', '而', '美', '丽'
+        ];
+        let currentTextIndex = 0;
 
+        // 2. 修改 createPipe 函数
+        function createPipe() {
+            const pipeGapPosition = Math.random() * (WINDOW_HEIGHT - PIPE_GAP - 100) + 50;
+            
+            pipes.push({
+                x: WINDOW_WIDTH,
+                y: 0,
+                width: PIPE_WIDTH,
+                height: pipeGapPosition,
+                passed: false,
+                text: pipeTexts[currentTextIndex],
+                textVisible: true
+            });
+
+            pipes.push({
+                x: WINDOW_WIDTH,
+                y: pipeGapPosition + PIPE_GAP,
+                width: PIPE_WIDTH,
+                height: WINDOW_HEIGHT - pipeGapPosition - PIPE_GAP,
+                passed: false
+            });
+
+            // 更新文字索引，循环使用文字
+            currentTextIndex = (currentTextIndex + 1) % pipeTexts.length;
+        }
+
+        // 3. 修改 drawPipes 函数
         function drawPipes() {
-            pipes.forEach((pipe, index) => {
-                // 先绘制水管
-                ctx.fillStyle = 'green';
+            pipes.forEach(pipe => {
+                // 绘制管道
+                ctx.fillStyle = '#2ecc71';
                 ctx.fillRect(pipe.x, pipe.y, pipe.width, pipe.height);
                 
-                // 只在上方的水管上显示文字（每对水管中的第二个）
-                if (index % 2 === 1) {  // 修改判断条件，使用索引的奇偶性来确定是否是上方水管
+                // 只在上管道时绘制文字
+                if (pipe.text && pipe.textVisible && pipe.y === 0) {
+                    // 保存当前上下文状态
+                    ctx.save();
+                    
                     // 设置文字样式
-                    ctx.fillStyle = 'white';
-                    ctx.font = '30px Arial';  // 增大字体以便更容易看见
+                    ctx.fillStyle = '#FFD700';  // 金色
+                    ctx.font = 'bold 30px Arial';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
                     
-                    // 计算当前应该显示哪个字符
-                    const pairIndex = Math.floor(index / 2);  // 获取水管对索引
-                    const charIndex = (pairIndex + currentCharIndex) % pipeText.length;
-                    const char = pipeText[charIndex];
-                    
-                    // 计算文字位置
-                    const textX = pipe.x + pipe.width / 2;
-                    const textY = pipe.height / 2;  // 将文字放在水管的中间位置
+                    // 计算文字位置（在管道间隙的中心）
+                    const textX = pipe.x + pipe.width/2;
+                    const textY = pipe.height + PIPE_GAP/2;
                     
                     // 绘制文字
-                    ctx.save();  // 保存当前上下文状态
-                    ctx.translate(textX, textY);  // 移动到文字位置
-                    ctx.fillText(char, 0, 0);  // 在中心点绘制文字
-                    ctx.restore();  // 恢复上下文状态
+                    ctx.fillText(pipe.text, textX, textY);
+                    
+                    // 恢复上下文状态
+                    ctx.restore();
                 }
             });
-        }
-
-        function createPipe() {
-            const minHeight = WINDOW_HEIGHT * 0.2;  // 调整最小高度
-            const maxHeight = WINDOW_HEIGHT * 0.6;  // 调整最大高度
-            const randomHeight = Math.random() * (maxHeight - minHeight) + minHeight;
-            
-            currentCharIndex = (currentCharIndex + 1) % pipeText.length;
-            
-            const pipeWidth = PIPE_WIDTH || 50;  // 确保有默认值
-            
-            return [
-                // 下方水管
-                {
-                    x: WINDOW_WIDTH,
-                    y: randomHeight + PIPE_GAP,
-                    width: pipeWidth,
-                    height: WINDOW_HEIGHT - (randomHeight + PIPE_GAP)
-                },
-                // 上方水管
-                {
-                    x: WINDOW_WIDTH,
-                    y: 0,
-                    width: pipeWidth,
-                    height: randomHeight
-                }
-            ];
         }
 
         // 添加搞笑消息数组
@@ -409,7 +412,7 @@
                 // 开始裁剪路径
                 ctx.beginPath();
                 
-                // 绘制椭圆
+                // 制椭圆
                 ctx.ellipse(
                     0,              // 中心点x
                     0,              // 中心点y
@@ -461,17 +464,18 @@
                 bird.y += birdMovement;
 
                 pipes.forEach(pipe => {
-                    pipe.x -= 5;
+                    pipe.x -= 2;
                 });
 
                 pipes = pipes.filter(pipe => pipe.x > -PIPE_WIDTH);
 
                 if (pipes.length === 0 || pipes[pipes.length - 2].x < WINDOW_WIDTH - 300) {
-                    pipes.push(...createPipe());
+                    createPipe();
                 }
 
                 pipes.forEach(pipe => {
-                    if (pipe.x + pipe.width === 100) {
+                    if (!pipe.passed && pipe.x + pipe.width < bird.x) {
+                        pipe.passed = true;
                         score += 0.5;
                         playSound(scoreSound);
                     }
